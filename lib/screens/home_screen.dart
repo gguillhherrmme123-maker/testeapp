@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/task.dart';
 import '../models/employee.dart';
 import '../models/transaction.dart';
@@ -19,48 +22,70 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  final List<Task> _tasks = [
-    Task(
-      id: '1',
-      title: 'Reunião de Alinhamento',
-      description: 'Discutir metas do mês',
-      dueDate: DateTime.now().add(const Duration(days: 2)),
-    ),
-    Task(
-      id: '2',
-      title: 'Fechar Relatório Financeiro',
-      description: 'Revisar despesas',
-      dueDate: DateTime.now(),
-      isCompleted: true,
-    ),
-  ];
+  List<Task> _tasks = [];
+  List<Employee> _employees = [];
+  List<FinancialTransaction> _transactions = [];
+  List<Client> _clients = [];
 
-  final List<Employee> _employees = [
-    Employee(id: '1', name: 'Ana Silva', role: 'Gerente', phone: '(11) 98888-7777'),
-    Employee(id: '2', name: 'Carlos Souza', role: 'Desenvolvedor', phone: '(11) 97777-6666'),
-  ];
+  bool _isLoading = true;
 
-  final List<FinancialTransaction> _transactions = [
-    FinancialTransaction(
-      id: '1',
-      type: TransactionType.income,
-      amount: 5000.0,
-      description: 'Projeto Website',
-      date: DateTime.now(),
-    ),
-    FinancialTransaction(
-      id: '2',
-      type: TransactionType.expense,
-      amount: 1200.0,
-      description: 'Licença de Software',
-      date: DateTime.now(),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-  final List<Client> _clients = [
-    Client(id: '1', name: 'Tech Solutions', notes: 'Cliente corporativo importante'),
-    Client(id: '2', name: 'Padaria Central', notes: 'Manutenção mensal'),
-  ];
+  // ========== CARREGAR DADOS ==========
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final tasksJson = prefs.getString('tasks');
+    final employeesJson = prefs.getString('employees');
+    final transactionsJson = prefs.getString('transactions');
+    final clientsJson = prefs.getString('clients');
+
+    setState(() {
+      if (tasksJson != null) {
+        final List list = jsonDecode(tasksJson);
+        _tasks = list.map((e) => Task.fromJson(e)).toList();
+      }
+      if (employeesJson != null) {
+        final List list = jsonDecode(employeesJson);
+        _employees = list.map((e) => Employee.fromJson(e)).toList();
+      }
+      if (transactionsJson != null) {
+        final List list = jsonDecode(transactionsJson);
+        _transactions = list.map((e) => FinancialTransaction.fromJson(e)).toList();
+      }
+      if (clientsJson != null) {
+        final List list = jsonDecode(clientsJson);
+        _clients = list.map((e) => Client.fromJson(e)).toList();
+      }
+      _isLoading = false;
+    });
+  }
+
+  // ========== SALVAR DADOS ==========
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      'tasks',
+      jsonEncode(_tasks.map((t) => t.toJson()).toList()),
+    );
+    await prefs.setString(
+      'employees',
+      jsonEncode(_employees.map((e) => e.toJson()).toList()),
+    );
+    await prefs.setString(
+      'transactions',
+      jsonEncode(_transactions.map((t) => t.toJson()).toList()),
+    );
+    await prefs.setString(
+      'clients',
+      jsonEncode(_clients.map((c) => c.toJson()).toList()),
+    );
+  }
 
   double get _monthlyBalance {
     double total = 0;
@@ -76,6 +101,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final List<Widget> screens = [
       DashboardScreen(
         pendingTasks: _tasks.where((t) => !t.isCompleted).length,
@@ -94,12 +125,20 @@ class _HomeScreenState extends State<HomeScreen> {
               dueDate: date,
             ));
           });
+          _saveData();
         },
         onToggleTask: (id) {
           setState(() {
             final task = _tasks.firstWhere((t) => t.id == id);
             task.isCompleted = !task.isCompleted;
           });
+          _saveData();
+        },
+        onDeleteTask: (id) {
+          setState(() {
+            _tasks.removeWhere((t) => t.id == id);
+          });
+          _saveData();
         },
       ),
       EmployeesScreen(
@@ -113,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
               phone: phone,
             ));
           });
+          _saveData();
         },
         onEditEmployee: (id, name, role, phone) {
           setState(() {
@@ -121,6 +161,13 @@ class _HomeScreenState extends State<HomeScreen> {
             emp.role = role;
             emp.phone = phone;
           });
+          _saveData();
+        },
+        onDeleteEmployee: (id) {
+          setState(() {
+            _employees.removeWhere((e) => e.id == id);
+          });
+          _saveData();
         },
       ),
       FinancesScreen(
@@ -135,6 +182,13 @@ class _HomeScreenState extends State<HomeScreen> {
               date: date,
             ));
           });
+          _saveData();
+        },
+        onDeleteTransaction: (id) {
+          setState(() {
+            _transactions.removeWhere((t) => t.id == id);
+          });
+          _saveData();
         },
       ),
       ClientsScreen(
@@ -147,6 +201,13 @@ class _HomeScreenState extends State<HomeScreen> {
               notes: notes,
             ));
           });
+          _saveData();
+        },
+        onDeleteClient: (id) {
+          setState(() {
+            _clients.removeWhere((c) => c.id == id);
+          });
+          _saveData();
         },
       ),
     ];
