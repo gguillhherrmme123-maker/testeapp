@@ -5,12 +5,14 @@ class EmployeesScreen extends StatelessWidget {
   final List<Employee> employees;
   final Function(String, String, String) onAddEmployee;
   final Function(String, String, String, String) onEditEmployee;
+  final Function(String) onDeleteEmployee;
 
   const EmployeesScreen({
     super.key,
     required this.employees,
     required this.onAddEmployee,
     required this.onEditEmployee,
+    required this.onDeleteEmployee,
   });
 
   void _showEmployeeDialog(BuildContext context, {Employee? employee}) {
@@ -72,27 +74,62 @@ class EmployeesScreen extends StatelessWidget {
     );
   }
 
+  void _confirmDelete(BuildContext context, String id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Funcionário'),
+        content: const Text('Tem certeza que deseja excluir este funcionário?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              onDeleteEmployee(id);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView.builder(
-        itemCount: employees.length,
-        itemBuilder: (ctx, i) {
-          final emp = employees[i];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text(emp.name),
-              subtitle: Text('${emp.role} • ${emp.phone}'),
-              trailing: IconButton(
-                icon: const Icon(Icons.edit, size: 20),
-                onPressed: () => _showEmployeeDialog(context, employee: emp),
-              ),
+      body: employees.isEmpty
+          ? const Center(child: Text('Nenhum funcionário cadastrado'))
+          : ListView.builder(
+              itemCount: employees.length,
+              itemBuilder: (ctx, i) {
+                final emp = employees[i];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.person)),
+                    title: Text(emp.name),
+                    subtitle: Text('${emp.role} • ${emp.phone}'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _showEmployeeDialog(context, employee: emp),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                          onPressed: () => _confirmDelete(context, emp.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showEmployeeDialog(context),
         child: const Icon(Icons.add),
