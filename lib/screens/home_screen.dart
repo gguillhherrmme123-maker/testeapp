@@ -35,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  // ========== CARREGAR DADOS ==========
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -65,26 +64,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // ========== SALVAR DADOS ==========
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString(
-      'tasks',
-      jsonEncode(_tasks.map((t) => t.toJson()).toList()),
-    );
-    await prefs.setString(
-      'employees',
-      jsonEncode(_employees.map((e) => e.toJson()).toList()),
-    );
-    await prefs.setString(
-      'transactions',
-      jsonEncode(_transactions.map((t) => t.toJson()).toList()),
-    );
-    await prefs.setString(
-      'clients',
-      jsonEncode(_clients.map((c) => c.toJson()).toList()),
-    );
+    await prefs.setString('tasks', jsonEncode(_tasks.map((t) => t.toJson()).toList()));
+    await prefs.setString('employees', jsonEncode(_employees.map((e) => e.toJson()).toList()));
+    await prefs.setString('transactions', jsonEncode(_transactions.map((t) => t.toJson()).toList()));
+    await prefs.setString('clients', jsonEncode(_clients.map((c) => c.toJson()).toList()));
   }
 
   double get _monthlyBalance {
@@ -123,6 +109,21 @@ class _HomeScreenState extends State<HomeScreen> {
               title: title,
               description: desc,
               dueDate: date,
+            ));
+          });
+          _saveData();
+        },
+        onEditTask: (id, title, desc, date) {
+          setState(() {
+            final task = _tasks.firstWhere((t) => t.id == id);
+            // Como Task tem campos final, removemos e adicionamos de novo
+            _tasks.removeWhere((t) => t.id == id);
+            _tasks.add(Task(
+              id: id,
+              title: title,
+              description: desc,
+              dueDate: date,
+              isCompleted: task.isCompleted,
             ));
           });
           _saveData();
@@ -200,6 +201,14 @@ class _HomeScreenState extends State<HomeScreen> {
               name: name,
               notes: notes,
             ));
+          });
+          _saveData();
+        },
+        onEditClient: (id, name, notes) {
+          setState(() {
+            final client = _clients.firstWhere((c) => c.id == id);
+            client.name = name;
+            client.notes = notes;
           });
           _saveData();
         },
