@@ -4,23 +4,25 @@ import '../models/client.dart';
 class ClientsScreen extends StatelessWidget {
   final List<Client> clients;
   final Function(String, String) onAddClient;
+  final Function(String, String, String) onEditClient;
   final Function(String) onDeleteClient;
 
   const ClientsScreen({
     super.key,
     required this.clients,
     required this.onAddClient,
+    required this.onEditClient,
     required this.onDeleteClient,
   });
 
-  void _showAddClientDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final notesController = TextEditingController();
+  void _showClientDialog(BuildContext context, {Client? client}) {
+    final nameController = TextEditingController(text: client?.name ?? '');
+    final notesController = TextEditingController(text: client?.notes ?? '');
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Novo Cliente'),
+        title: Text(client == null ? 'Novo Cliente' : 'Editar Cliente'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -31,6 +33,7 @@ class ClientsScreen extends StatelessWidget {
             TextField(
               controller: notesController,
               decoration: const InputDecoration(labelText: 'Observação'),
+              maxLines: 3,
             ),
           ],
         ),
@@ -42,11 +45,15 @@ class ClientsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
-                onAddClient(nameController.text, notesController.text);
+                if (client == null) {
+                  onAddClient(nameController.text, notesController.text);
+                } else {
+                  onEditClient(client.id, nameController.text, notesController.text);
+                }
                 Navigator.of(ctx).pop();
               }
             },
-            child: const Text('Adicionar'),
+            child: const Text('Salvar'),
           ),
         ],
       ),
@@ -95,16 +102,25 @@ class ClientsScreen extends StatelessWidget {
                     ),
                     title: Text(client.name),
                     subtitle: Text(client.notes),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _confirmDelete(context, client.id),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _showClientDialog(context, client: client),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                          onPressed: () => _confirmDelete(context, client.id),
+                        ),
+                      ],
                     ),
                   ),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddClientDialog(context),
+        onPressed: () => _showClientDialog(context),
         child: const Icon(Icons.add),
       ),
     );
